@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Trade Journal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -308,7 +309,6 @@ header .title-block p{
       <div class="conn-status" id="connStatus"><span class="conn-dot"></span><span>Belum terhubung ke Supabase</span></div>
     </div>
     <div class="header-actions">
-      <button class="btn-icon" id="btnSettings" title="Pengaturan Supabase">⚙</button>
       <button class="btn-add" id="btnAddTrade">+ Tambah trade</button>
     </div>
   </header>
@@ -413,47 +413,6 @@ header .title-block p{
   </div>
 </div>
 
-<!-- Modal pengaturan Supabase -->
-<div class="overlay" id="settingsOverlay">
-  <div class="modal">
-    <h3>Hubungkan ke Supabase</h3>
-    <div class="field">
-      <label>Project URL</label>
-      <input type="text" id="sbUrl" placeholder="https://xxxxxxxx.supabase.co">
-    </div>
-    <div class="field">
-      <label>Anon / public API key</label>
-      <input type="text" id="sbKey" placeholder="eyJhbGciOi...">
-      <div class="field-note">Ambil dari Project Settings → API di dashboard Supabase-mu. Kredensial ini disimpan di penyimpanan pribadi artifact ini, hanya untukmu.</div>
-    </div>
-    <div class="field">
-      <label>Belum punya tabelnya? Jalankan SQL ini di SQL Editor Supabase</label>
-      <div class="sql-box">create table trades (
-  id bigint primary key,
-  date date not null,
-  pair text,
-  rr text,
-  unit text,
-  pnl numeric not null,
-  notes text,
-  image text,
-  created_at timestamptz default now()
-);
-
-alter table trades enable row level security;
-
-create policy "public access"
-on trades for all
-using (true)
-with check (true);</div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="btnSettingsCancel">Batal</button>
-      <button class="btn-save" id="btnSettingsSave">Simpan &amp; hubungkan</button>
-    </div>
-  </div>
-</div>
-
 <div class="lightbox" id="lightbox"><img id="lightboxImg" src=""></div>
 
 <script>
@@ -486,29 +445,11 @@ function parseRR(rr){
   return isNaN(n) ? null : n;
 }
 
-// ---------- Supabase config (kredensial disimpan lokal per pengguna) ----------
-let sbConfig = null; // {url, key}
+// ---------- Koneksi Supabase ----------
+const SUPABASE_URL = 'https://doohpgvxpquvssryzquj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvb2hwZ3Z4cHF1dnNzcnl6cXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0NTMyOTEsImV4cCI6MjEwNTAyOTI5MX0.pk4JUEwFdGmGjra8NtFHyFDi4-ZdIWuvjH7VbxILqPc';
 
-async function loadConfig(){
-  try{
-    const res = await window.storage.get('supabase-config', false);
-    if(res && res.value) sbConfig = JSON.parse(res.value);
-  }catch(e){ sbConfig = null; }
-}
-
-async function saveConfig(cfg){
-  sbConfig = cfg;
-  try{ await window.storage.set('supabase-config', JSON.stringify(cfg), false); }
-  catch(e){ console.error('gagal simpan konfigurasi', e); }
-}
-
-function sbHeaders(extra){
-  return Object.assign({
-    'apikey': sbConfig.key,
-    'Authorization': 'Bearer ' + sbConfig.key,
-    'Content-Type': 'application/json'
-  }, extra || {});
-}
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function setConnStatus(state, msg){
   const dot = document.querySelector('#connStatus .conn-dot');
@@ -524,20 +465,16 @@ function showBanner(type, msg){
   b.textContent = msg;
 }
 
-// ---------- Storage (Supabase REST / PostgREST) ----------
+// ---------- Storage (Supabase) ----------
 async function loadTrades(){
-  if(!sbConfig){ trades = []; return; }
   showBanner('loading', 'Memuat data dari Supabase...');
   try{
-    const res = await fetch(`${sbConfig.url}/rest/v1/trades?select=*&order=id.desc`, {
-      headers: sbHeaders()
-    });
-    if(!res.ok){
-      const errText = await res.text();
-      throw new Error(errText || res.statusText);
-    }
-    const rows = await res.json();
-    trades = rows.map(r=>({
+    const { data, error } = await supabaseClient
+      .from('trades')
+      .select('*')
+      .order('id', { ascending: false });
+    if(error) throw error;
+    trades = data.map(r=>({
       id: r.id, date: r.date, pair: r.pair||'', rr: r.rr||'', unit: r.unit||'',
       pnl: Number(r.pnl), notes: r.notes||'', image: r.image||null
     }));
@@ -546,33 +483,24 @@ async function loadTrades(){
   }catch(e){
     console.error(e);
     setConnStatus('err', 'Gagal terhubung');
-    showBanner('error', 'Gagal memuat data dari Supabase: ' + e.message + '. Cek URL, API key, dan pastikan tabel "trades" sudah dibuat.');
+    showBanner('error', 'Gagal memuat data dari Supabase: ' + e.message + '. Pastikan tabel "trades" sudah dibuat.');
     trades = [];
   }
 }
 
 async function upsertTrade(trade){
-  const res = await fetch(`${sbConfig.url}/rest/v1/trades?on_conflict=id`, {
-    method: 'POST',
-    headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=representation' }),
-    body: JSON.stringify([trade])
-  });
-  if(!res.ok){
-    const errText = await res.text();
-    throw new Error(errText || res.statusText);
-  }
-  return res.json();
+  const { error } = await supabaseClient
+    .from('trades')
+    .upsert(trade, { onConflict: 'id' });
+  if(error) throw error;
 }
 
 async function deleteTradeRemote(id){
-  const res = await fetch(`${sbConfig.url}/rest/v1/trades?id=eq.${id}`, {
-    method: 'DELETE',
-    headers: sbHeaders()
-  });
-  if(!res.ok){
-    const errText = await res.text();
-    throw new Error(errText || res.statusText);
-  }
+  const { error } = await supabaseClient
+    .from('trades')
+    .delete()
+    .eq('id', id);
+  if(error) throw error;
 }
 
 // ---------- Rendering ----------
@@ -935,44 +863,8 @@ async function handleSave(){
   }
 }
 
-// ---------- Settings modal ----------
-function openSettings(){
-  document.getElementById('sbUrl').value = sbConfig ? sbConfig.url : '';
-  document.getElementById('sbKey').value = sbConfig ? sbConfig.key : '';
-  document.getElementById('settingsOverlay').classList.add('open');
-}
-function closeSettings(){
-  document.getElementById('settingsOverlay').classList.remove('open');
-}
-async function handleSettingsSave(){
-  let url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
-  const key = document.getElementById('sbKey').value.trim();
-  if(!url || !key){ alert('Isi URL project dan API key terlebih dahulu.'); return; }
-  const btn = document.getElementById('btnSettingsSave');
-  btn.disabled = true; btn.textContent = 'Menghubungkan...';
-  await saveConfig({url, key});
-  await loadTrades();
-  renderAll();
-  btn.disabled = false; btn.textContent = 'Simpan & hubungkan';
-  if(sbConfig){
-    closeSettings();
-  }
-}
-document.getElementById('btnSettings').addEventListener('click', openSettings);
-document.getElementById('btnSettingsCancel').addEventListener('click', ()=>{
-  if(!sbConfig){ alert('Hubungkan ke Supabase terlebih dahulu untuk mulai mencatat trade.'); return; }
-  closeSettings();
-});
-document.getElementById('btnSettingsSave').addEventListener('click', handleSettingsSave);
-document.getElementById('settingsOverlay').addEventListener('click', (e)=>{
-  if(e.target.id === 'settingsOverlay' && sbConfig) closeSettings();
-});
-
 // ---------- Events ----------
-document.getElementById('btnAddTrade').addEventListener('click', ()=>{
-  if(!sbConfig){ openSettings(); return; }
-  openModal(null);
-});
+document.getElementById('btnAddTrade').addEventListener('click', ()=>openModal(null));
 document.getElementById('btnCancel').addEventListener('click', closeModal);
 document.getElementById('btnSave').addEventListener('click', handleSave);
 document.getElementById('modalOverlay').addEventListener('click', (e)=>{
@@ -1020,13 +912,6 @@ document.addEventListener('keydown', (e)=>{
 
 // ---------- Init ----------
 (async function init(){
-  await loadConfig();
-  if(!sbConfig){
-    setConnStatus('', 'Belum terhubung ke Supabase');
-    document.getElementById('subtitle').textContent = 'Hubungkan ke Supabase untuk mulai mencatat trade';
-    openSettings();
-    return;
-  }
   await loadTrades();
   renderAll();
 })();
