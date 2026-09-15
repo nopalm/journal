@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Trade Journal</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#0b0b0c;
+  --surface:#141415;
+  --surface-2:#1c1c1e;
+  --border:#28282a;
+  --border-soft:#202021;
+  --text:#efeee9;
+  --text-dim:#93938f;
+  --text-faint:#5c5c5a;
+  --profit:#4ade80;
+  --profit-dim:rgba(74,222,128,0.13);
+  --loss:#f87171;
+  --loss-dim:rgba(248,113,113,0.13);
+  --radius:12px;
+  --radius-sm:7px;
+  --font-ui:'Space Grotesk', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+html,body{margin:0; padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-ui);
+  min-height:100vh;
+  padding-bottom:60px;
+}
+
+.wrap{max-width:880px; margin:0 auto; padding:28px 18px 40px;}
+
+/* Header */
+header{
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:16px; margin-bottom:26px; flex-wrap:wrap;
+}
+header .title-block h1{
+  font-size:26px; font-weight:700; margin:0 0 4px; letter-spacing:-0.01em;
+}
+header .title-block p{
+  margin:0; color:var(--text-dim); font-size:13.5px;
+}
+.btn-add{
+  background:var(--text); color:var(--bg); border:none;
+  font-family:var(--font-ui); font-weight:600; font-size:14px;
+  padding:11px 18px; border-radius:var(--radius-sm); cursor:pointer;
+  white-space:nowrap;
+  transition:opacity .15s ease;
+}
+.btn-add:hover{opacity:.85;}
+.btn-add:active{opacity:.7;}
+.header-actions{display:flex; align-items:center; gap:8px;}
+.btn-icon{
+  background:var(--surface); border:1px solid var(--border); color:var(--text-dim);
+  width:38px; height:38px; border-radius:var(--radius-sm); cursor:pointer;
+  font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.btn-icon:hover{color:var(--text); background:var(--surface-2);}
+.conn-status{
+  display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-dim);
+}
+.conn-dot{width:6px; height:6px; border-radius:50%; background:var(--text-faint); flex-shrink:0;}
+.conn-dot.ok{background:var(--profit);}
+.conn-dot.err{background:var(--loss);}
+
+/* Stats */
+.stats{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+  background:var(--border); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden; margin-bottom:28px;
+}
+.stat-cell{background:var(--surface); padding:16px 14px;}
+.stat-cell .val{
+  font-family:var(--font-mono); font-size:21px; font-weight:600;
+  line-height:1.1; margin-bottom:6px; word-break:break-word;
+}
+.stat-cell .lbl{font-size:12px; color:var(--text-dim);}
+.val.profit{color:var(--profit);}
+.val.loss{color:var(--loss);}
+
+@media (max-width:560px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .stat-cell .val{font-size:18px;}
+}
+
+/* Section headers */
+.section-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin:34px 0 14px; gap:12px; flex-wrap:wrap;
+}
+.section-head h2{font-size:16px; font-weight:600; margin:0;}
+
+/* Calendar */
+.cal-nav{display:flex; align-items:center; gap:10px;}
+.cal-nav button{
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  width:30px; height:30px; border-radius:var(--radius-sm); cursor:pointer;
+  font-size:15px; font-family:var(--font-ui); display:flex; align-items:center; justify-content:center;
+}
+.cal-nav button:hover{background:var(--surface-2);}
+.cal-nav .cal-label{font-family:var(--font-mono); font-size:13.5px; min-width:118px; text-align:center;}
+
+.calendar{
+  border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;
+}
+.cal-weekdays{
+  display:grid; grid-template-columns:repeat(7,1fr);
+  background:var(--surface-2);
+}
+.cal-weekdays span{
+  padding:9px 0; text-align:center; font-size:11.5px; color:var(--text-dim);
+  font-family:var(--font-mono);
+}
+.cal-grid{
+  display:grid; grid-template-columns:repeat(7,1fr);
+  background:var(--border);
+  gap:1px;
+}
+.cal-cell{
+  background:var(--surface); min-height:64px; padding:6px 6px;
+  cursor:pointer; position:relative; display:flex; flex-direction:column; justify-content:space-between;
+  transition:background .12s ease;
+}
+.cal-cell:hover{background:var(--surface-2);}
+.cal-cell.empty{background:var(--bg); cursor:default;}
+.cal-cell.today .daynum{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:19px; height:19px; border-radius:50%; border:1px solid var(--text);
+}
+.cal-cell.has-profit{background:var(--profit-dim);}
+.cal-cell.has-loss{background:var(--loss-dim);}
+.cal-cell.has-profit:hover{background:rgba(74,222,128,0.22);}
+.cal-cell.has-loss:hover{background:rgba(248,113,113,0.22);}
+.daynum{font-family:var(--font-mono); font-size:12.5px; color:var(--text-dim);}
+.cal-cell.has-profit .daynum, .cal-cell.has-loss .daynum{color:var(--text);}
+.cal-pnl{
+  font-family:var(--font-mono); font-size:11.5px; font-weight:600;
+}
+.cal-pnl.profit{color:var(--profit);}
+.cal-pnl.loss{color:var(--loss);}
+.cal-meta{display:flex; align-items:center; gap:4px;}
+.cal-imgdot{width:5px; height:5px; border-radius:50%; background:var(--text-dim); display:inline-block;}
+.cal-count{font-size:10px; color:var(--text-faint); font-family:var(--font-mono);}
+
+@media (max-width:560px){
+  .cal-cell{min-height:50px; padding:5px 4px;}
+  .cal-pnl{font-size:10px;}
+}
+
+/* Day panel */
+.day-panel{
+  border:1px solid var(--border); border-radius:var(--radius);
+  margin-top:16px; padding:16px; background:var(--surface);
+}
+.day-panel-head{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;
+}
+.day-panel-head h3{margin:0; font-size:14.5px; font-weight:600;}
+.day-panel-head button.close-day{
+  background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:13px;
+  font-family:var(--font-ui);
+}
+.trade-row{
+  border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+  padding:12px; margin-bottom:10px; display:flex; gap:12px; align-items:flex-start;
+}
+.trade-row img{
+  width:52px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--border);
+  cursor:pointer; flex-shrink:0;
+}
+.trade-row .no-img{
+  width:52px; height:52px; border-radius:6px; border:1px dashed var(--border);
+  flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  color:var(--text-faint); font-size:9px; text-align:center;
+}
+.trade-info{flex:1; min-width:0;}
+.trade-info .top-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;}
+.trade-pair{font-weight:600; font-size:13.5px;}
+.trade-rr{font-family:var(--font-mono); font-size:11.5px; color:var(--text-dim); border:1px solid var(--border); padding:1px 6px; border-radius:4px;}
+.trade-pnl{font-family:var(--font-mono); font-weight:600; font-size:13.5px;}
+.trade-notes{font-size:12px; color:var(--text-dim); margin-top:3px; line-height:1.4;}
+.trade-actions{display:flex; gap:6px; flex-shrink:0;}
+.trade-actions button{
+  background:none; border:1px solid var(--border); color:var(--text-dim);
+  width:26px; height:26px; border-radius:6px; cursor:pointer; font-size:12px;
+  display:flex; align-items:center; justify-content:center;
+}
+.trade-actions button:hover{color:var(--text); background:var(--surface-2);}
+.empty-state{
+  text-align:center; color:var(--text-dim); font-size:13px; padding:26px 10px;
+}
+
+/* Breakdown */
+.period-tabs{display:flex; gap:6px;}
+.period-tabs button{
+  background:var(--surface); border:1px solid var(--border); color:var(--text-dim);
+  font-family:var(--font-ui); font-size:12.5px; padding:6px 12px; border-radius:20px;
+  cursor:pointer;
+}
+.period-tabs button.active{background:var(--text); color:var(--bg); border-color:var(--text); font-weight:600;}
+
+.breakdown-table{width:100%; border-collapse:collapse; font-size:13px;}
+.breakdown-table th, .breakdown-table td{
+  text-align:left; padding:10px 10px; border-bottom:1px solid var(--border-soft);
+}
+.breakdown-table th{
+  color:var(--text-dim); font-weight:500; font-size:11.5px; cursor:pointer; user-select:none;
+  white-space:nowrap;
+}
+.breakdown-table th:hover{color:var(--text);}
+.breakdown-table th .arrow{font-size:9px; margin-left:3px; color:var(--text-faint);}
+.breakdown-table td{font-family:var(--font-mono); font-size:12.5px;}
+.breakdown-table td.period-col{font-family:var(--font-ui); font-size:13px;}
+.table-scroll{overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius);}
+.table-scroll table{margin:0;}
+.table-scroll th:first-child, .table-scroll td:first-child{padding-left:14px;}
+.table-scroll th:last-child, .table-scroll td:last-child{padding-right:14px;}
+
+/* Modal */
+.overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none;
+  align-items:flex-start; justify-content:center; z-index:100; padding:30px 16px;
+  overflow-y:auto;
+}
+.overlay.open{display:flex;}
+.modal{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  width:100%; max-width:440px; padding:22px; margin-top:10px;
+}
+.modal h3{margin:0 0 18px; font-size:16px; font-weight:600;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px;}
+.field input[type=text], .field input[type=number], .field input[type=date], .field textarea{
+  width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  padding:10px 11px; border-radius:var(--radius-sm); font-family:var(--font-ui); font-size:14px;
+}
+.field input[type=number]{font-family:var(--font-mono);}
+.field textarea{resize:vertical; min-height:56px; font-family:var(--font-ui);}
+.field-row{display:flex; gap:10px;}
+.field-row .field{flex:1;}
+.img-drop{
+  border:1px dashed var(--border); border-radius:var(--radius-sm); padding:14px;
+  text-align:center; cursor:pointer; color:var(--text-dim); font-size:12.5px;
+  position:relative;
+}
+.img-drop input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+.img-preview-wrap{position:relative; display:inline-block;}
+.img-preview-wrap img{max-width:100%; max-height:160px; border-radius:var(--radius-sm); display:block; margin:0 auto;}
+.img-remove{
+  position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.7); color:#fff;
+  border:none; width:22px; height:22px; border-radius:50%; cursor:pointer; font-size:12px;
+}
+.modal-actions{display:flex; gap:10px; margin-top:18px;}
+.modal-actions button{
+  flex:1; padding:11px; border-radius:var(--radius-sm); font-family:var(--font-ui);
+  font-weight:600; font-size:14px; cursor:pointer; border:1px solid var(--border);
+}
+.btn-cancel{background:none; color:var(--text-dim);}
+.btn-save{background:var(--text); color:var(--bg); border-color:var(--text);}
+.btn-save:hover{opacity:.88;}
+.pnl-hint{font-size:11px; margin-top:5px; font-family:var(--font-mono);}
+.pnl-hint.profit{color:var(--profit);}
+.pnl-hint.loss{color:var(--loss);}
+.pnl-hint.be{color:var(--text-dim);}
+
+/* image lightbox */
+.lightbox{
+  position:fixed; inset:0; background:rgba(0,0,0,0.88); display:none;
+  align-items:center; justify-content:center; z-index:200; padding:24px; cursor:zoom-out;
+}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:100%; max-height:100%; border-radius:8px;}
+
+.footnote{
+  margin-top:36px; font-size:11.5px; color:var(--text-faint); text-align:center; line-height:1.6;
+}
+.field-note{font-size:11px; color:var(--text-faint); margin-top:5px; line-height:1.5;}
+.sql-box{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:10px; font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim);
+  white-space:pre-wrap; max-height:150px; overflow-y:auto; margin-top:6px;
+}
+.status-banner{
+  border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px;
+  font-size:12.5px; margin-bottom:16px; display:none; align-items:center; gap:8px;
+}
+.status-banner.show{display:flex;}
+.status-banner.error{border-color:var(--loss); color:var(--loss);}
+.status-banner.loading{color:var(--text-dim);}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <h1>Trade Journal</h1>
+      <p id="subtitle">Memuat data...</p>
+      <div class="conn-status" id="connStatus"><span class="conn-dot"></span><span>Belum terhubung ke Supabase</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="btnSettings" title="Pengaturan Supabase">⚙</button>
+      <button class="btn-add" id="btnAddTrade">+ Tambah trade</button>
+    </div>
+  </header>
+
+  <div class="status-banner" id="statusBanner"></div>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="section-head">
+    <h2 id="calMonthTitle">Kalender</h2>
+    <div class="cal-nav">
+      <button id="prevMonth">‹</button>
+      <span class="cal-label" id="calLabel">-</span>
+      <button id="nextMonth">›</button>
+    </div>
+  </div>
+
+  <div class="calendar">
+    <div class="cal-weekdays">
+      <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div class="day-panel" id="dayPanel" style="display:none;"></div>
+
+  <div class="section-head">
+    <h2>Rekap performa</h2>
+    <div class="period-tabs" id="periodTabs">
+      <button data-p="day" class="active">Harian</button>
+      <button data-p="week">Mingguan</button>
+      <button data-p="month">Bulanan</button>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table class="breakdown-table" id="breakdownTable">
+      <thead>
+        <tr>
+          <th data-k="period">Periode<span class="arrow"></span></th>
+          <th data-k="trades">Trade<span class="arrow"></span></th>
+          <th data-k="wins">Menang<span class="arrow"></span></th>
+          <th data-k="losses">Kalah<span class="arrow"></span></th>
+          <th data-k="wr">Win rate<span class="arrow"></span></th>
+          <th data-k="pnl">P/L<span class="arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="breakdownBody"></tbody>
+    </table>
+  </div>
+
+  <div class="footnote">Data tersimpan otomatis di perangkat ini melalui memori artifact.</div>
+</div>
+
+<!-- Modal tambah/edit trade -->
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Tambah trade</h3>
+    <input type="hidden" id="editId">
+    <div class="field-row">
+      <div class="field">
+        <label>Tanggal</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="field">
+        <label>Pair / instrumen</label>
+        <input type="text" id="fPair" placeholder="cth. XAUUSD">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Risk : Reward</label>
+        <input type="text" id="fRR" placeholder="cth. 1:2">
+      </div>
+      <div class="field">
+        <label>Satuan (opsional)</label>
+        <input type="text" id="fUnit" placeholder="cth. USD, %, pips">
+      </div>
+    </div>
+    <div class="field">
+      <label>Profit / Loss</label>
+      <input type="number" step="any" id="fPnl" placeholder="cth. 150000 atau -75000">
+      <div class="pnl-hint" id="pnlHint"></div>
+    </div>
+    <div class="field">
+      <label>Catatan (opsional)</label>
+      <textarea id="fNotes" placeholder="Alasan entry, evaluasi, dsb."></textarea>
+    </div>
+    <div class="field">
+      <label>Screenshot chart (opsional)</label>
+      <div id="imgArea">
+        <div class="img-drop" id="imgDrop">
+          Ketuk untuk unggah gambar
+          <input type="file" id="fImage" accept="image/*">
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancel">Batal</button>
+      <button class="btn-save" id="btnSave">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal pengaturan Supabase -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <h3>Hubungkan ke Supabase</h3>
+    <div class="field">
+      <label>Project URL</label>
+      <input type="text" id="sbUrl" placeholder="https://xxxxxxxx.supabase.co">
+    </div>
+    <div class="field">
+      <label>Anon / public API key</label>
+      <input type="text" id="sbKey" placeholder="eyJhbGciOi...">
+      <div class="field-note">Ambil dari Project Settings → API di dashboard Supabase-mu. Kredensial ini disimpan di penyimpanan pribadi artifact ini, hanya untukmu.</div>
+    </div>
+    <div class="field">
+      <label>Belum punya tabelnya? Jalankan SQL ini di SQL Editor Supabase</label>
+      <div class="sql-box">create table trades (
+  id bigint primary key,
+  date date not null,
+  pair text,
+  rr text,
+  unit text,
+  pnl numeric not null,
+  notes text,
+  image text,
+  created_at timestamptz default now()
+);
+
+alter table trades enable row level security;
+
+create policy "public access"
+on trades for all
+using (true)
+with check (true);</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnSettingsCancel">Batal</button>
+      <button class="btn-save" id="btnSettingsSave">Simpan &amp; hubungkan</button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><img id="lightboxImg" src=""></div>
+
+<script>
+const MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+let trades = [];
+let currentMonth = new Date(); currentMonth.setDate(1);
+let selectedDateStr = null;
+let breakdownPeriod = 'day';
+let sortKey = 'period';
+let sortDir = 'desc';
+let currentImageData = null;
+
+function pad(n){return n.toString().padStart(2,'0');}
+function toDateStr(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function fmtNum(n){
+  const sign = n>0 ? '+' : (n<0 ? '-' : '');
+  return sign + Math.abs(n).toLocaleString('id-ID', {maximumFractionDigits:2});
+}
+function parseRR(rr){
+  if(!rr) return null;
+  rr = rr.trim();
+  if(rr.includes(':')){
+    const parts = rr.split(':');
+    const a = parseFloat(parts[0]), b = parseFloat(parts[1]);
+    if(a>0 && !isNaN(b)) return b/a;
+    return null;
+  }
+  const n = parseFloat(rr);
+  return isNaN(n) ? null : n;
+}
+
+// ---------- Supabase config (kredensial disimpan lokal per pengguna) ----------
+let sbConfig = null; // {url, key}
+
+async function loadConfig(){
+  try{
+    const res = await window.storage.get('supabase-config', false);
+    if(res && res.value) sbConfig = JSON.parse(res.value);
+  }catch(e){ sbConfig = null; }
+}
+
+async function saveConfig(cfg){
+  sbConfig = cfg;
+  try{ await window.storage.set('supabase-config', JSON.stringify(cfg), false); }
+  catch(e){ console.error('gagal simpan konfigurasi', e); }
+}
+
+function sbHeaders(extra){
+  return Object.assign({
+    'apikey': sbConfig.key,
+    'Authorization': 'Bearer ' + sbConfig.key,
+    'Content-Type': 'application/json'
+  }, extra || {});
+}
+
+function setConnStatus(state, msg){
+  const dot = document.querySelector('#connStatus .conn-dot');
+  const label = document.querySelector('#connStatus span:last-child');
+  dot.className = 'conn-dot' + (state==='ok' ? ' ok' : (state==='err' ? ' err' : ''));
+  label.textContent = msg;
+}
+
+function showBanner(type, msg){
+  const b = document.getElementById('statusBanner');
+  if(!msg){ b.className = 'status-banner'; b.textContent=''; return; }
+  b.className = 'status-banner show' + (type ? ' '+type : '');
+  b.textContent = msg;
+}
+
+// ---------- Storage (Supabase REST / PostgREST) ----------
+async function loadTrades(){
+  if(!sbConfig){ trades = []; return; }
+  showBanner('loading', 'Memuat data dari Supabase...');
+  try{
+    const res = await fetch(`${sbConfig.url}/rest/v1/trades?select=*&order=id.desc`, {
+      headers: sbHeaders()
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(errText || res.statusText);
+    }
+    const rows = await res.json();
+    trades = rows.map(r=>({
+      id: r.id, date: r.date, pair: r.pair||'', rr: r.rr||'', unit: r.unit||'',
+      pnl: Number(r.pnl), notes: r.notes||'', image: r.image||null
+    }));
+    setConnStatus('ok', 'Terhubung ke Supabase');
+    showBanner();
+  }catch(e){
+    console.error(e);
+    setConnStatus('err', 'Gagal terhubung');
+    showBanner('error', 'Gagal memuat data dari Supabase: ' + e.message + '. Cek URL, API key, dan pastikan tabel "trades" sudah dibuat.');
+    trades = [];
+  }
+}
+
+async function upsertTrade(trade){
+  const res = await fetch(`${sbConfig.url}/rest/v1/trades?on_conflict=id`, {
+    method: 'POST',
+    headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=representation' }),
+    body: JSON.stringify([trade])
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error(errText || res.statusText);
+  }
+  return res.json();
+}
+
+async function deleteTradeRemote(id){
+  const res = await fetch(`${sbConfig.url}/rest/v1/trades?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: sbHeaders()
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error(errText || res.statusText);
+  }
+}
+
+// ---------- Rendering ----------
+function renderAll(){
+  renderStats();
+  renderCalendar();
+  renderDayPanel();
+  renderBreakdown();
+}
+
+function renderStats(){
+  const closed = trades.filter(t=>t.pnl !== 0);
+  const wins = trades.filter(t=>t.pnl > 0).length;
+  const losses = trades.filter(t=>t.pnl < 0).length;
+  const wr = closed.length ? (wins/closed.length*100) : 0;
+  const totalPnl = trades.reduce((s,t)=>s+t.pnl,0);
+  const rrs = trades.map(t=>parseRR(t.rr)).filter(v=>v!==null);
+  const avgRR = rrs.length ? (rrs.reduce((a,b)=>a+b,0)/rrs.length) : null;
+
+  const el = document.getElementById('statsRow');
+  el.innerHTML = `
+    <div class="stat-cell"><div class="val">${trades.length}</div><div class="lbl">Total trade</div></div>
+    <div class="stat-cell"><div class="val">${wr.toFixed(1)}%</div><div class="lbl">Win rate</div></div>
+    <div class="stat-cell"><div class="val ${totalPnl>0?'profit':(totalPnl<0?'loss':'')}">${fmtNum(totalPnl)}</div><div class="lbl">Total P/L</div></div>
+    <div class="stat-cell"><div class="val">${avgRR!==null ? '1:'+avgRR.toFixed(2) : '-'}</div><div class="lbl">Rata-rata RR</div></div>
+  `;
+  document.getElementById('subtitle').textContent = trades.length
+    ? `${trades.length} trade tercatat`
+    : 'Belum ada trade — mulai catat trade pertamamu';
+}
+
+function renderCalendar(){
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  document.getElementById('calLabel').textContent = `${MONTHS[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1);
+  let startOffset = firstDay.getDay() - 1; // Monday = 0
+  if(startOffset < 0) startOffset = 6;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  const todayStr = toDateStr(new Date());
+
+  for(let i=0;i<startOffset;i++){
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell empty';
+    grid.appendChild(cell);
+  }
+
+  for(let d=1; d<=daysInMonth; d++){
+    const dateObj = new Date(year, month, d);
+    const dateStr = toDateStr(dateObj);
+    const dayTrades = trades.filter(t=>t.date === dateStr);
+    const dayPnl = dayTrades.reduce((s,t)=>s+t.pnl,0);
+    const hasImg = dayTrades.some(t=>t.image);
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    if(dateStr === todayStr) cell.classList.add('today');
+    if(dayTrades.length){
+      cell.classList.add(dayPnl >= 0 ? 'has-profit' : 'has-loss');
+    }
+    cell.dataset.date = dateStr;
+
+    let pnlHtml = '';
+    if(dayTrades.length){
+      pnlHtml = `<div class="cal-pnl ${dayPnl>=0?'profit':'loss'}">${fmtNum(dayPnl)}</div>`;
+    }
+    cell.innerHTML = `
+      <span class="daynum">${d}</span>
+      <div>
+        ${pnlHtml}
+        <div class="cal-meta">
+          ${hasImg ? '<span class="cal-imgdot"></span>' : ''}
+          ${dayTrades.length>1 ? `<span class="cal-count">${dayTrades.length}x</span>` : ''}
+        </div>
+      </div>
+    `;
+    cell.addEventListener('click', ()=>{
+      selectedDateStr = dateStr;
+      renderDayPanel();
+      document.getElementById('dayPanel').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function renderDayPanel(){
+  const panel = document.getElementById('dayPanel');
+  if(!selectedDateStr){ panel.style.display='none'; return; }
+  panel.style.display = 'block';
+
+  const dayTrades = trades.filter(t=>t.date === selectedDateStr).sort((a,b)=>b.id-a.id);
+  const [y,m,d] = selectedDateStr.split('-');
+  const label = `${parseInt(d)} ${MONTHS[parseInt(m)-1]} ${y}`;
+
+  let rows = '';
+  if(dayTrades.length === 0){
+    rows = `<div class="empty-state">Belum ada trade pada tanggal ini.</div>`;
+  } else {
+    rows = dayTrades.map(t=>{
+      const img = t.image
+        ? `<img src="${t.image}" data-full="${t.image}" class="trade-thumb">`
+        : `<div class="no-img">no img</div>`;
+      return `
+      <div class="trade-row" data-id="${t.id}">
+        ${img}
+        <div class="trade-info">
+          <div class="top-row">
+            <span class="trade-pair">${t.pair || 'Tanpa nama'}</span>
+            ${t.rr ? `<span class="trade-rr">RR ${t.rr}</span>` : ''}
+            <span class="trade-pnl ${t.pnl>0?'profit':(t.pnl<0?'loss':'')}">${fmtNum(t.pnl)}${t.unit ? ' '+t.unit : ''}</span>
+          </div>
+          ${t.notes ? `<div class="trade-notes">${escapeHtml(t.notes)}</div>` : ''}
+        </div>
+        <div class="trade-actions">
+          <button class="edit-btn" title="Edit">✎</button>
+          <button class="del-btn" title="Hapus">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  panel.innerHTML = `
+    <div class="day-panel-head">
+      <h3>${label}</h3>
+      <button class="close-day" id="closeDayBtn">Tutup ✕</button>
+    </div>
+    ${rows}
+  `;
+
+  document.getElementById('closeDayBtn').onclick = ()=>{ selectedDateStr = null; renderDayPanel(); };
+
+  panel.querySelectorAll('.trade-thumb').forEach(img=>{
+    img.addEventListener('click', ()=>{
+      document.getElementById('lightboxImg').src = img.dataset.full;
+      document.getElementById('lightbox').classList.add('open');
+    });
+  });
+  panel.querySelectorAll('.edit-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const id = Number(e.target.closest('.trade-row').dataset.id);
+      openModal(trades.find(t=>t.id===id));
+    });
+  });
+  panel.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const id = Number(e.target.closest('.trade-row').dataset.id);
+      if(confirm('Hapus trade ini?')){
+        try{
+          await deleteTradeRemote(id);
+          trades = trades.filter(t=>t.id!==id);
+          renderAll();
+        }catch(err){
+          alert('Gagal menghapus trade: ' + err.message);
+        }
+      }
+    });
+  });
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ---------- Breakdown ----------
+function getWeekStart(dateObj){
+  const d = new Date(dateObj);
+  const day = (d.getDay()+6)%7; // Monday=0
+  d.setDate(d.getDate()-day);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function renderBreakdown(){
+  const groups = {};
+  trades.forEach(t=>{
+    const dt = new Date(t.date+'T00:00:00');
+    let key, label, sortVal;
+    if(breakdownPeriod === 'day'){
+      key = t.date;
+      const [y,m,d] = t.date.split('-');
+      label = `${parseInt(d)} ${MONTHS[parseInt(m)-1]} ${y}`;
+      sortVal = t.date;
+    } else if(breakdownPeriod === 'week'){
+      const start = getWeekStart(dt);
+      const end = new Date(start); end.setDate(end.getDate()+6);
+      key = toDateStr(start);
+      label = `${start.getDate()} - ${end.getDate()} ${MONTHS[end.getMonth()]} ${end.getFullYear()}`;
+      sortVal = key;
+    } else {
+      key = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}`;
+      label = `${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
+      sortVal = key;
+    }
+    if(!groups[key]) groups[key] = {label, sortVal, trades:0, wins:0, losses:0, pnl:0};
+    groups[key].trades++;
+    if(t.pnl>0) groups[key].wins++;
+    if(t.pnl<0) groups[key].losses++;
+    groups[key].pnl += t.pnl;
+  });
+
+  let rows = Object.values(groups).map(g=>{
+    const closed = g.wins+g.losses;
+    g.wr = closed ? (g.wins/closed*100) : 0;
+    return g;
+  });
+
+  rows.sort((a,b)=>{
+    let av, bv;
+    switch(sortKey){
+      case 'period': av=a.sortVal; bv=b.sortVal; break;
+      case 'trades': av=a.trades; bv=b.trades; break;
+      case 'wins': av=a.wins; bv=b.wins; break;
+      case 'losses': av=a.losses; bv=b.losses; break;
+      case 'wr': av=a.wr; bv=b.wr; break;
+      case 'pnl': av=a.pnl; bv=b.pnl; break;
+    }
+    if(av<bv) return sortDir==='asc' ? -1 : 1;
+    if(av>bv) return sortDir==='asc' ? 1 : -1;
+    return 0;
+  });
+
+  const tbody = document.getElementById('breakdownBody');
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-dim); font-family:var(--font-ui); padding:24px;">Belum ada data untuk ditampilkan.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(g=>`
+    <tr>
+      <td class="period-col">${g.label}</td>
+      <td>${g.trades}</td>
+      <td>${g.wins}</td>
+      <td>${g.losses}</td>
+      <td>${g.wr.toFixed(1)}%</td>
+      <td style="color:${g.pnl>0?'var(--profit)':(g.pnl<0?'var(--loss)':'var(--text)')}">${fmtNum(g.pnl)}</td>
+    </tr>
+  `).join('');
+
+  document.querySelectorAll('#breakdownTable th').forEach(th=>{
+    const arrow = th.querySelector('.arrow');
+    if(th.dataset.k === sortKey){
+      arrow.textContent = sortDir === 'asc' ? '▲' : '▼';
+    } else {
+      arrow.textContent = '';
+    }
+  });
+}
+
+// ---------- Modal ----------
+function openModal(trade){
+  document.getElementById('modalTitle').textContent = trade ? 'Edit trade' : 'Tambah trade';
+  document.getElementById('editId').value = trade ? trade.id : '';
+  document.getElementById('fDate').value = trade ? trade.date : (selectedDateStr || toDateStr(new Date()));
+  document.getElementById('fPair').value = trade ? (trade.pair||'') : '';
+  document.getElementById('fRR').value = trade ? (trade.rr||'') : '';
+  document.getElementById('fUnit').value = trade ? (trade.unit||'') : '';
+  document.getElementById('fPnl').value = trade ? trade.pnl : '';
+  document.getElementById('fNotes').value = trade ? (trade.notes||'') : '';
+  currentImageData = trade ? (trade.image || null) : null;
+  renderImgArea();
+  updatePnlHint();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function renderImgArea(){
+  const area = document.getElementById('imgArea');
+  if(currentImageData){
+    area.innerHTML = `
+      <div class="img-preview-wrap">
+        <img src="${currentImageData}">
+        <button class="img-remove" id="removeImgBtn">✕</button>
+      </div>`;
+    document.getElementById('removeImgBtn').onclick = ()=>{ currentImageData = null; renderImgArea(); };
+  } else {
+    area.innerHTML = `
+      <div class="img-drop" id="imgDrop">
+        Ketuk untuk unggah gambar
+        <input type="file" id="fImage" accept="image/*">
+      </div>`;
+    document.getElementById('fImage').addEventListener('change', handleImageUpload);
+  }
+}
+
+function handleImageUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxDim = 900;
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w > h){ h = Math.round(h * maxDim/w); w = maxDim; }
+        else { w = Math.round(w * maxDim/h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      currentImageData = canvas.toDataURL('image/jpeg', 0.7);
+      renderImgArea();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updatePnlHint(){
+  const v = parseFloat(document.getElementById('fPnl').value);
+  const hint = document.getElementById('pnlHint');
+  if(isNaN(v)){ hint.textContent=''; return; }
+  if(v > 0){ hint.textContent = 'Akan tercatat sebagai profit'; hint.className='pnl-hint profit'; }
+  else if(v < 0){ hint.textContent = 'Akan tercatat sebagai loss'; hint.className='pnl-hint loss'; }
+  else { hint.textContent = 'Breakeven'; hint.className='pnl-hint be'; }
+}
+
+async function handleSave(){
+  const pnlRaw = document.getElementById('fPnl').value;
+  if(pnlRaw === ''){ alert('Isi nilai profit/loss terlebih dahulu.'); return; }
+  const dateVal = document.getElementById('fDate').value;
+  if(!dateVal){ alert('Pilih tanggal terlebih dahulu.'); return; }
+
+  const editId = document.getElementById('editId').value;
+  const trade = {
+    id: editId ? Number(editId) : Date.now(),
+    date: dateVal,
+    pair: document.getElementById('fPair').value.trim(),
+    rr: document.getElementById('fRR').value.trim(),
+    unit: document.getElementById('fUnit').value.trim(),
+    pnl: parseFloat(pnlRaw),
+    notes: document.getElementById('fNotes').value.trim(),
+    image: currentImageData
+  };
+
+  const saveBtn = document.getElementById('btnSave');
+  saveBtn.disabled = true; saveBtn.textContent = 'Menyimpan...';
+  try{
+    await upsertTrade(trade);
+    if(editId){
+      trades = trades.map(t=> t.id === trade.id ? trade : t);
+    } else {
+      trades.push(trade);
+    }
+    closeModal();
+    selectedDateStr = trade.date;
+    renderAll();
+  }catch(err){
+    alert('Gagal menyimpan ke Supabase: ' + err.message);
+  }finally{
+    saveBtn.disabled = false; saveBtn.textContent = 'Simpan';
+  }
+}
+
+// ---------- Settings modal ----------
+function openSettings(){
+  document.getElementById('sbUrl').value = sbConfig ? sbConfig.url : '';
+  document.getElementById('sbKey').value = sbConfig ? sbConfig.key : '';
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+async function handleSettingsSave(){
+  let url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('sbKey').value.trim();
+  if(!url || !key){ alert('Isi URL project dan API key terlebih dahulu.'); return; }
+  const btn = document.getElementById('btnSettingsSave');
+  btn.disabled = true; btn.textContent = 'Menghubungkan...';
+  await saveConfig({url, key});
+  await loadTrades();
+  renderAll();
+  btn.disabled = false; btn.textContent = 'Simpan & hubungkan';
+  if(sbConfig){
+    closeSettings();
+  }
+}
+document.getElementById('btnSettings').addEventListener('click', openSettings);
+document.getElementById('btnSettingsCancel').addEventListener('click', ()=>{
+  if(!sbConfig){ alert('Hubungkan ke Supabase terlebih dahulu untuk mulai mencatat trade.'); return; }
+  closeSettings();
+});
+document.getElementById('btnSettingsSave').addEventListener('click', handleSettingsSave);
+document.getElementById('settingsOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'settingsOverlay' && sbConfig) closeSettings();
+});
+
+// ---------- Events ----------
+document.getElementById('btnAddTrade').addEventListener('click', ()=>{
+  if(!sbConfig){ openSettings(); return; }
+  openModal(null);
+});
+document.getElementById('btnCancel').addEventListener('click', closeModal);
+document.getElementById('btnSave').addEventListener('click', handleSave);
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'modalOverlay') closeModal();
+});
+document.getElementById('fPnl').addEventListener('input', updatePnlHint);
+document.getElementById('fImage').addEventListener('change', handleImageUpload);
+
+document.getElementById('prevMonth').addEventListener('click', ()=>{
+  currentMonth.setMonth(currentMonth.getMonth()-1);
+  renderCalendar();
+});
+document.getElementById('nextMonth').addEventListener('click', ()=>{
+  currentMonth.setMonth(currentMonth.getMonth()+1);
+  renderCalendar();
+});
+
+document.getElementById('periodTabs').addEventListener('click', (e)=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#periodTabs button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  breakdownPeriod = e.target.dataset.p;
+  renderBreakdown();
+});
+
+document.getElementById('breakdownTable').addEventListener('click', (e)=>{
+  const th = e.target.closest('th');
+  if(!th) return;
+  const k = th.dataset.k;
+  if(sortKey === k){ sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortKey = k; sortDir = k==='period' ? 'desc' : 'desc'; }
+  renderBreakdown();
+});
+
+document.getElementById('lightbox').addEventListener('click', ()=>{
+  document.getElementById('lightbox').classList.remove('open');
+});
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    closeModal();
+    document.getElementById('lightbox').classList.remove('open');
+  }
+});
+
+// ---------- Init ----------
+(async function init(){
+  await loadConfig();
+  if(!sbConfig){
+    setConnStatus('', 'Belum terhubung ke Supabase');
+    document.getElementById('subtitle').textContent = 'Hubungkan ke Supabase untuk mulai mencatat trade';
+    openSettings();
+    return;
+  }
+  await loadTrades();
+  renderAll();
+})();
+</script>
+</body>
+</html>
