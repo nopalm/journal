@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Trade Journal</title>
+
+<!-- PWA: manifest & theming -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b0c">
+<meta name="background-color" content="#0b0b0c">
+<meta name="description" content="Jurnal trading pribadi dengan kalender, statistik performa, dan sinkronisasi Supabase">
+
+<!-- PWA: iOS support -->
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trade Journal">
+
+<!-- PWA: favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -123,5 +140,16 @@
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" src=""></div>
 <script src="js/app.js"></script>
+
+<!-- PWA: registrasi service worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.error('Gagal mendaftarkan service worker:', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>

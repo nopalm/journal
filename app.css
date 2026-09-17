@@ -31,7 +31,6 @@ body{
 
 .wrap{max-width:880px; margin:0 auto; padding:28px 18px 40px;}
 
-/* Header */
 header{
   display:flex; align-items:flex-end; justify-content:space-between;
   gap:16px; margin-bottom:26px; flex-wrap:wrap;
@@ -65,7 +64,6 @@ header .title-block p{
 .conn-dot.ok{background:var(--profit);}
 .conn-dot.err{background:var(--loss);}
 
-/* Stats */
 .stats{
   display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
   background:var(--border); border:1px solid var(--border);
@@ -85,14 +83,12 @@ header .title-block p{
   .stat-cell .val{font-size:18px;}
 }
 
-/* Section headers */
 .section-head{
   display:flex; align-items:center; justify-content:space-between;
   margin:34px 0 14px; gap:12px; flex-wrap:wrap;
 }
 .section-head h2{font-size:16px; font-weight:600; margin:0;}
 
-/* Calendar */
 .cal-nav{display:flex; align-items:center; gap:10px;}
 .cal-nav button{
   background:var(--surface); border:1px solid var(--border); color:var(--text);
@@ -149,7 +145,6 @@ header .title-block p{
   .cal-pnl{font-size:10px;}
 }
 
-/* Day panel */
 .day-panel{
   border:1px solid var(--border); border-radius:var(--radius);
   margin-top:16px; padding:16px; background:var(--surface);
@@ -192,7 +187,6 @@ header .title-block p{
   text-align:center; color:var(--text-dim); font-size:13px; padding:26px 10px;
 }
 
-/* Breakdown */
 .period-tabs{display:flex; gap:6px;}
 .period-tabs button{
   background:var(--surface); border:1px solid var(--border); color:var(--text-dim);
@@ -218,7 +212,6 @@ header .title-block p{
 .table-scroll th:first-child, .table-scroll td:first-child{padding-left:14px;}
 .table-scroll th:last-child, .table-scroll td:last-child{padding-right:14px;}
 
-/* Modal */
 .overlay{
   position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none;
   align-items:flex-start; justify-content:center; z-index:100; padding:30px 16px;
@@ -265,7 +258,6 @@ header .title-block p{
 .pnl-hint.loss{color:var(--loss);}
 .pnl-hint.be{color:var(--text-dim);}
 
-/* image lightbox */
 .lightbox{
   position:fixed; inset:0; background:rgba(0,0,0,0.88); display:none;
   align-items:center; justify-content:center; z-index:200; padding:24px; cursor:zoom-out;
